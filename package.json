@@ -9,7 +9,9 @@
     "dev:vite": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build": "vite build && electron-builder",
-    "build:win": "vite build && electron-builder --win"
+    "build:win": "vite build && electron-builder --win",
+    "test:renderer": "node tests/run-renderer-tests.cjs",
+    "build:renderer": "vite build"
   },
   "author": "Memory Card Toolkit",
   "license": "MIT",
@@ -19,7 +21,9 @@
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
     "electron-icon-builder": "^2.0.1",
+    "esbuild": "0.21.5",
     "jimp": "^1.6.0",
+    "jsdom": "26.1.0",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",
     "vite": "^5.0.10",

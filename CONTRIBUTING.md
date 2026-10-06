@@ -122,3 +122,20 @@ memory-card-toolkit/
 ## 🙏 Thank You!
 
 Your contributions make open source amazing. Thank you for being part of this project!
+
+## Renderer checks without device access
+
+```bash
+npm ci --ignore-scripts
+npm run test:renderer
+npm run build:renderer
+```
+
+These commands run React DOM tests with synthetic read-only IPC fixtures and build
+only the web renderer. They do not launch Electron or package the desktop app.
+The tests reject unexpected IPC calls, disk mutations, browser alerts/confirmations and network access.
+They cover main-panel detail metadata ownership during selection changes, pending
+reads, retries and refreshes. They do not validate disk operations or hardware.
+
+The main panel shows the current selected device's summary while details load or
+are unavailable. Use **Retry details** to repeat an unavailable metadata lookup.

@@ -7,6 +7,7 @@ import ExtendModal from './components/ExtendModal';
 import ShrinkModal from './components/ShrinkModal';
 import DeletePartitionModal from './components/DeletePartitionModal';
 import { devicePresets } from './data/presets';
+import useDeviceInfo from './hooks/useDeviceInfo';
 
 function App() {
     const [devices, setDevices] = useState([]);
@@ -14,7 +15,14 @@ function App() {
     const [selectedPreset, setSelectedPreset] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [modalState, setModalState] = useState({ type: null, isOpen: false, data: null });
-    const [deviceInfo, setDeviceInfo] = useState(null);
+    const {
+        deviceInfo,
+        deviceInfoStatus,
+        fetchDeviceInfo,
+        beginDeviceInfoRead,
+        completeDeviceInfoRead,
+        failDeviceInfoRead,
+    } = useDeviceInfo(selectedDevice);
     const [showAllDisks, setShowAllDisks] = useState(true); // Show all disks by default
 
     // Fetch devices (all or removable only)
@@ -61,45 +69,10 @@ function App() {
         }
     }, []);
 
-    // Fetch detailed info for selected device
-    const fetchDeviceInfo = useCallback(async (device) => {
-        try {
-            if (window.electronAPI) {
-                if (device.driveLetter) {
-                    const info = await window.electronAPI.disk.getInfo(device.driveLetter);
-                    setDeviceInfo(info);
-                } else if (device.diskNumber !== undefined) {
-                    const info = await window.electronAPI.disk.getPhysicalInfo(device.diskNumber);
-                    setDeviceInfo(info);
-                }
-            } else {
-                // Mock detailed info
-                setDeviceInfo({
-                    ...device,
-                    usedSpace: device.size - (device.freeSpace || 0),
-                    driveType: 'Removable Disk',
-                    diskNumber: device.diskNumber || 2,
-                    isProtected: false,
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching device info:', error);
-        }
-    }, []);
-
     // Initial fetch
     useEffect(() => {
         fetchDevices();
     }, [fetchDevices]);
-
-    // Fetch device info when selection changes
-    useEffect(() => {
-        if (selectedDevice) {
-            fetchDeviceInfo(selectedDevice);
-        } else {
-            setDeviceInfo(null);
-        }
-    }, [selectedDevice, fetchDeviceInfo]);
 
     // Handle device selection
     const handleDeviceSelect = (device) => {
@@ -177,6 +150,7 @@ function App() {
     const handleAssignLetter = async (letter) => {
         if (!selectedDevice || !window.electronAPI) return;
 
+        let deviceInfoRequest = null;
         try {
             const partition = selectedDevice.partitions?.[0];
             if (partition) {
@@ -197,14 +171,17 @@ function App() {
                     setSelectedDevice(updatedDevice);
                     // Also fetch updated info
                     if (updatedDevice.driveLetter) {
+                        // The selection effect owns new objects after they commit.
+                        deviceInfoRequest = beginDeviceInfoRead(updatedDevice);
                         const info = await window.electronAPI.disk.getInfo(updatedDevice.driveLetter);
-                        setDeviceInfo(info);
+                        completeDeviceInfoRead(deviceInfoRequest, info);
                     }
                 }
 
                 alert(`Drive letter ${letter}: assigned successfully!`);
             }
         } catch (error) {
+            failDeviceInfoRead(deviceInfoRequest);
             console.error('Error assigning letter:', error);
             alert(`Failed to assign letter: ${error.message}`);
         }
@@ -254,6 +231,8 @@ function App() {
                 <DeviceDetails
                     device={selectedDevice}
                     deviceInfo={deviceInfo}
+                    deviceInfoStatus={deviceInfoStatus}
+                    onRetryDeviceInfo={() => fetchDeviceInfo(selectedDevice)}
                     selectedPreset={selectedPreset}
                     onFormat={openFormatModal}
                     onPartition={openPartitionModal}
