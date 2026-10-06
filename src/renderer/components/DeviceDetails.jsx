@@ -4,6 +4,8 @@ import { Icons } from './Icons';
 function DeviceDetails({
     device,
     deviceInfo,
+    deviceInfoStatus,
+    onRetryDeviceInfo,
     selectedPreset,
     onFormat,
     onPartition,
@@ -54,6 +56,16 @@ function DeviceDetails({
                         </div>
                     </div>
                 </header>
+
+                {deviceInfoStatus === 'loading' && (
+                    <p role="status">Loading device details. Showing the selected device summary.</p>
+                )}
+                {deviceInfoStatus === 'error' && (
+                    <div role="status">
+                        <p>Device details unavailable. Showing the selected device summary.</p>
+                        <button className="btn" onClick={onRetryDeviceInfo}>Retry details</button>
+                    </div>
+                )}
 
                 {/* No Letter Warning */}
                 {!hasLetter && (
